@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linear vs Logistic Regression</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f0f2f5;
+        padding: 30px;
+        color: #333;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 10px;
+        color: #1a1a2e;
+        font-size: 28px;
+      }
+      .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 14px;
+      }
+      .charts-container {
+        display: flex;
+        gap: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .chart-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        flex: 1;
+        min-width: 450px;
+        max-width: 560px;
+      }
+      .chart-card h2 {
+        font-size: 20px;
+        margin-bottom: 4px;
+      }
+      .chart-card .tag {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+      .tag-regression {
+        background: #e3f2fd;
+        color: #1565c0;
+      }
+      .tag-classification {
+        background: #fce4ec;
+        color: #c62828;
+      }
+      .chart-card p {
+        font-size: 13px;
+        color: #777;
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+      canvas {
+        width: 100% !important;
+      }
+
+      .comparison-table {
+        max-width: 1200px;
+        margin: 40px auto 0;
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      }
+      .comparison-table h2 {
+        margin-bottom: 16px;
+        font-size: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 14px;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+      }
+      th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #555;
+      }
+      td:first-child {
+        font-weight: 600;
+        color: #444;
+        width: 180px;
+      }
+      .formula {
+        font-family: 'Courier New', monospace;
+        background: #f5f5f5;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>📊 Linear Regression vs Logistic Regression</h1>
+    <p class="subtitle">Interactive comparison of the two fundamental regression techniques</p>
+
+    <div class="charts-container">
+      <!-- Linear Regression Chart -->
+      <div class="chart-card">
+        <h2>Linear Regression</h2>
+        <span class="tag tag-regression">Regression (Continuous Output)</span>
+        <p>
+          Predicts a <strong>continuous value</strong> using a best-fit line.<br />
+          Formula: <span class="formula">y = β₀ + β₁x</span><br />
+          Example: Predicting house price based on square footage.
+        </p>
+        <canvas id="linearChart"></canvas>
+      </div>
+
+      <!-- Logistic Regression Chart -->
+      <div class="chart-card">
+        <h2>Logistic Regression</h2>
+        <span class="tag tag-classification">Classification (Categorical Output)</span>
+        <p>
+          Predicts a <strong>probability (0–1)</strong> using a sigmoid curve.<br />
+          Formula: <span class="formula">p = 1 / (1 + e<sup>-(β₀+β₁x)</sup>)</span><br />
+          Example: Predicting pass/fail based on study hours.
+        </p>
+        <canvas id="logisticChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="comparison-table">
+      <h2>📋 Key Differences</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Aspect</th>
+            <th>Linear Regression</th>
+            <th>Logistic Regression</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Purpose</td>
+            <td>Predict continuous numerical values</td>
+            <td>Classify into discrete categories</td>
+          </tr>
+          <tr>
+            <td>Output Range</td>
+            <td>−∞ to +∞</td>
+            <td>0 to 1 (probability)</td>
+          </tr>
+          <tr>
+            <td>Curve Shape</td>
+            <td>Straight line</td>
+            <td>S-shaped (sigmoid) curve</td>
+          </tr>
+          <tr>
+            <td>Loss Function</td>
+            <td>Mean Squared Error (MSE)</td>
+            <td>Binary Cross-Entropy (Log Loss)</td>
+          </tr>
+          <tr>
+            <td>Metrics</td>
+            <td>R², RMSE, MAE</td>
+            <td>Accuracy, Precision, Recall, AUC-ROC</td>
+          </tr>
+          <tr>
+            <td>Example</td>
+            <td>House price, temperature, sales forecast</td>
+            <td>Spam detection, disease diagnosis, pass/fail</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      // ========== LINEAR REGRESSION CHART ==========
+      // Generate sample data: house size vs price
+      const linearDataPoints = [
+        { x: 600, y: 150 },
+        { x: 800, y: 200 },
+        { x: 900, y: 210 },
+        { x: 1000, y: 250 },
+        { x: 1100, y: 270 },
+        { x: 1200, y: 300 },
+        { x: 1300, y: 310 },
+        { x: 1400, y: 340 },
+        { x: 1500, y: 360 },
+        { x: 1600, y: 380 },
+        { x: 1700, y: 400 },
+        { x: 1800, y: 420 },
+        { x: 1900, y: 440 },
+        { x: 2000, y: 470 },
+        { x: 2100, y: 490 },
+        { x: 2200, y: 510 },
+        { x: 2400, y: 550 },
+        { x: 2600, y: 600 },
+        { x: 2800, y: 630 },
+        { x: 3000, y: 680 },
+      ];
+
+      // Simple linear regression calculation
+      const n = linearDataPoints.length;
+      const sumX = linearDataPoints.reduce((s, p) => s + p.x, 0);
+      const sumY = linearDataPoints.reduce((s, p) => s + p.y, 0);
+      const sumXY = linearDataPoints.reduce((s, p) => s + p.x * p.y, 0);
+      const sumX2 = linearDataPoints.reduce((s, p) => s + p.x * p.x, 0);
+      const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+      const intercept = (sumY - slope * sumX) / n;
+
+      // Generate regression line points
+      const linearLine = [];
+      for (let x = 500; x <= 3100; x += 100) {
+        linearLine.push({ x: x, y: slope * x + intercept });
+      }
+
+      new Chart(document.getElementById('linearChart'), {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'Data Points (House Size vs Price)',
+              data: linearDataPoints,
+              backgroundColor: 'rgba(21, 101, 192, 0.6)',
+              borderColor: 'rgba(21, 101, 192, 0.8)',
+              pointRadius: 6,
+              pointHoverRadius: 8,
+            },
+            {
+              label: `Best Fit Line: y = ${slope.toFixed(2)}x + ${intercept.toFixed(1)}`,
+              data: linearLine,
+              type: 'line',
+              borderColor: 'rgba(244, 67, 54, 0.9)',
+              borderWidth: 3,
+              pointRadius: 0,
+              fill: false,
+              tension: 0,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 } } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `Size: ${ctx.parsed.x} sqft, Price: $${ctx.parsed.y}k`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'House Size (sqft)', font: { weight: 'bold' } },
+              min: 400,
+              max: 3200,
+            },
+            y: {
+              title: { display: true, text: 'Price ($k)', font: { weight: 'bold' } },
+              min: 100,
+              max: 750,
+            },
+          },
+        },
+      });
+
+      // ========== LOGISTIC REGRESSION CHART ==========
+      // Generate sample data: study hours vs pass/fail
+      const logisticDataPoints = [
+        { x: 0.5, y: 0 },
+        { x: 1.0, y: 0 },
+        { x: 1.5, y: 0 },
+        { x: 2.0, y: 0 },
+        { x: 2.5, y: 0 },
+        { x: 3.0, y: 0 },
+        { x: 3.5, y: 0 },
+        { x: 3.8, y: 0 },
+        { x: 4.0, y: 0 },
+        { x: 4.2, y: 0 },
+        { x: 4.5, y: 1 },
+        { x: 4.8, y: 0 },
+        { x: 5.0, y: 1 },
+        { x: 5.2, y: 0 },
+        { x: 5.5, y: 1 },
+        { x: 5.8, y: 1 },
+        { x: 6.0, y: 1 },
+        { x: 6.5, y: 1 },
+        { x: 7.0, y: 1 },
+        { x: 7.5, y: 1 },
+        { x: 8.0, y: 1 },
+        { x: 8.5, y: 1 },
+        { x: 9.0, y: 1 },
+        { x: 9.5, y: 1 },
+        { x: 10.0, y: 1 },
+      ];
+
+      // Sigmoid function parameters (pre-fitted for illustration)
+      const b0 = -5.5; // intercept
+      const b1 = 1.1; // slope
+      function sigmoid(x) {
+        return 1 / (1 + Math.exp(-(b0 + b1 * x)));
+      }
+
+      // Generate sigmoid curve
+      const sigmoidLine = [];
+      for (let x = 0; x <= 10.5; x += 0.2) {
+        sigmoidLine.push({ x: x, y: sigmoid(x) });
+      }
+
+      // Separate pass/fail for coloring
+      const failPoints = logisticDataPoints.filter((p) => p.y === 0);
+      const passPoints = logisticDataPoints.filter((p) => p.y === 1);
+
+      new Chart(document.getElementById('logisticChart'), {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'Fail (y=0)',
+              data: failPoints,
+              backgroundColor: 'rgba(244, 67, 54, 0.7)',
+              borderColor: 'rgba(244, 67, 54, 0.9)',
+              pointRadius: 7,
+              pointHoverRadius: 9,
+              pointStyle: 'crossRot',
+            },
+            {
+              label: 'Pass (y=1)',
+              data: passPoints,
+              backgroundColor: 'rgba(76, 175, 80, 0.7)',
+              borderColor: 'rgba(76, 175, 80, 0.9)',
+              pointRadius: 7,
+              pointHoverRadius: 9,
+              pointStyle: 'circle',
+            },
+            {
+              label: 'Sigmoid Curve (Decision Boundary)',
+              data: sigmoidLine,
+              type: 'line',
+              borderColor: 'rgba(156, 39, 176, 0.9)',
+              borderWidth: 3,
+              pointRadius: 0,
+              fill: false,
+              tension: 0.4,
+            },
+            {
+              label: 'Threshold (p=0.5)',
+              data: [
+                { x: 0, y: 0.5 },
+                { x: 10.5, y: 0.5 },
+              ],
+              type: 'line',
+              borderColor: 'rgba(0,0,0,0.3)',
+              borderWidth: 2,
+              borderDash: [8, 4],
+              pointRadius: 0,
+              fill: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 } } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  if (ctx.datasetIndex <= 1) {
+                    return `Hours: ${ctx.parsed.x}, Result: ${ctx.parsed.y === 1 ? 'Pass' : 'Fail'}`;
+                  }
+                  return `Hours: ${ctx.parsed.x.toFixed(1)}, P(pass): ${ctx.parsed.y.toFixed(3)}`;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Study Hours', font: { weight: 'bold' } },
+              min: 0,
+              max: 11,
+            },
+            y: {
+              title: { display: true, text: 'Probability / Outcome', font: { weight: 'bold' } },
+              min: -0.1,
+              max: 1.1,
+              ticks: {
+                callback: (val) => {
+                  if (val === 0) return '0 (Fail)';
+                  if (val === 0.5) return '0.5 (Threshold)';
+                  if (val === 1) return '1 (Pass)';
+                  return val;
+                },
+              },
+            },
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
